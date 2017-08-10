@@ -2,20 +2,26 @@ package zxing.trustway.cn.ydjwzxing;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.ImageFormat;
+import android.graphics.Paint;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.DecodeHintType;
 import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.Result;
+import com.google.zxing.ResultPoint;
 
 import java.util.Collection;
 import java.util.Map;
@@ -32,7 +38,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
     private Map<DecodeHintType,?> decodeHints;
     private String characterSet;
 
-    Intent intent;
+    private Intent intent;
+    private Result lastResult;
+
+    private IntentSource source;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,7 +148,31 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
 
     @Override
     public void handleDecode(Result result, Bitmap barcode, float scaleFactor) {
+        lastResult = result;
+//        ResultHandler resultHandler = ResultHandlerFactory.makeResultHandler(this, result);
 
+        boolean fromLiveScan = barcode != null;
+        if (fromLiveScan) {
+            // Then not from history, so beep/vibrate and we have an image to draw on
+//            beepManager.playBeepSoundAndVibrate();
+            drawResultPoints(barcode, scaleFactor, result);
+        }
+
+        switch (source) {
+            case NATIVE_APP_INTENT:
+            case PRODUCT_SEARCH_LINK:
+//                handleDecodeExternally(rawResult, resultHandler, barcode);
+                break;
+            case ZXING_LINK:
+//                if (scanFromWebPageManager == null || !scanFromWebPageManager.isScanFromWebPage()) {
+//                    handleDecodeInternally(rawResult, resultHandler, barcode);
+//                } else {
+//                    handleDecodeExternally(rawResult, resultHandler, barcode);
+//                }
+                break;
+            case NONE:
+                break;
+        }
     }
 
     @Override
@@ -149,7 +182,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
 
     @Override
     public void returnScanResult(Intent intent) {
-
+        this.setResult(Activity.RESULT_OK, intent);
+        this.finish();
     }
 
     @Override
@@ -164,13 +198,54 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
 
     @Override
     public void decodeSucceeded(Bundle bundle, int id, Result rawResult) {
-        Message message = Message.obtain(handler, R.id.decode_succeeded, rawResult);
-        message.setData(bundle);
-        message.sendToTarget();
+        if (handler != null) {
+            Message message = Message.obtain(handler, R.id.decode_succeeded, rawResult);
+            message.setData(bundle);
+            message.sendToTarget();
+        }
     }
 
     @Override
     public void decodeFailed(int id) {
+        if (handler != null) {
+            Message message = Message.obtain(handler, R.id.decode_failed);
+            message.sendToTarget();
+        }
+    }
 
+    private void drawResultPoints(Bitmap barcode, float scaleFactor, Result rawResult) {
+        ResultPoint[] points = rawResult.getResultPoints();
+        if (points != null && points.length > 0) {
+            Canvas canvas = new Canvas(barcode);
+            Paint paint = new Paint();
+            paint.setColor(getResources().getColor(R.color.result_points));
+            if (points.length == 2) {
+                paint.setStrokeWidth(4.0f);
+                drawLine(canvas, paint, points[0], points[1], scaleFactor);
+            } else if (points.length == 4 &&
+                    (rawResult.getBarcodeFormat() == BarcodeFormat.UPC_A ||
+                            rawResult.getBarcodeFormat() == BarcodeFormat.EAN_13)) {
+                // Hacky special case -- draw two lines, for the barcode and metadata
+                drawLine(canvas, paint, points[0], points[1], scaleFactor);
+                drawLine(canvas, paint, points[2], points[3], scaleFactor);
+            } else {
+                paint.setStrokeWidth(10.0f);
+                for (ResultPoint point : points) {
+                    if (point != null) {
+                        canvas.drawPoint(scaleFactor * point.getX(), scaleFactor * point.getY(), paint);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void drawLine(Canvas canvas, Paint paint, ResultPoint a, ResultPoint b, float scaleFactor) {
+        if (a != null && b != null) {
+            canvas.drawLine(scaleFactor * a.getX(),
+                    scaleFactor * a.getY(),
+                    scaleFactor * b.getX(),
+                    scaleFactor * b.getY(),
+                    paint);
+        }
     }
 }
