@@ -10,4 +10,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <zxing.trustway.cn.ydjwzxing.ViewfinderView
+        android:id="@+id/vfv_zxing"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
 </RelativeLayout>
