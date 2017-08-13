@@ -1,17 +1,23 @@
 package zxing.trustway.cn.ydjwzxing;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.hardware.Camera;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -22,6 +28,7 @@ import com.google.zxing.DecodeHintType;
 import com.google.zxing.PlanarYUVLuminanceSource;
 import com.google.zxing.Result;
 import com.google.zxing.ResultPoint;
+import com.google.zxing.client.android.camera.CameraConfigurationUtils;
 
 import java.util.Collection;
 import java.util.Map;
@@ -40,14 +47,31 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
 
     private Intent intent;
     private Result lastResult;
+    private Context context;
+    private Point screenResolution, cameraResolution, bestPreviewSize;
+    private Rect framingRect, framingRectInPreview;
 
+    private Result savedResultToShow;
+
+    private BeepManager beepManager;
+    private PreviewCallback previewCallback;
+    private AutoFocusManager autoFocusManager;
     private IntentSource source;
+    private boolean previewing = false;
+
+    private static final int MIN_FRAME_WIDTH = 240;
+    private static final int MIN_FRAME_HEIGHT = 240;
+    private static final int MAX_FRAME_WIDTH = 1200; // = 5/8 * 1920
+    private static final int MAX_FRAME_HEIGHT = 675; // = 5/8 * 1080
+    private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
+    private static final long BULK_MODE_SCAN_DELAY_MS = 1000L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         intent = getIntent();
+        context = this;
 
         sv = (SurfaceView) findViewById(R.id.surfaceview_zxing);
         vfv = (ViewfinderView) findViewById(R.id.vfv_zxing);
@@ -55,7 +79,13 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
         decodeFormats = DecodeFormatManager.parseDecodeFormats(intent);
         decodeHints = DecodeHintManager.parseDecodeHints(intent);
         characterSet = intent.getStringExtra(Intents.Scan.CHARACTER_SET);
-        handler = new ContextDecodeHandler(decodeFormats, decodeHints, characterSet, vfv, this);
+        this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        beepManager = new BeepManager(context);
+
+        screenResolution = new Point();
+        DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        screenResolution.x = dm.widthPixels;
+        screenResolution.y = dm.heightPixels;
     }
 
     public void doCamera() {
@@ -69,10 +99,6 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
             @Override
             public void onClick(View v) {
                 try {
-                    Camera.Parameters param = mCamera.getParameters();
-                    param.setPictureFormat(ImageFormat.JPEG);
-                    param.setPreviewSize(800, 400);
-                    param.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
                     mCamera.autoFocus(null);
                 } catch (Exception e) {
                 }
@@ -96,10 +122,31 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
             }
             c.setPreviewDisplay(h);
             c.setDisplayOrientation(90);
+            decodeOrStoreSavedBitmap(null, null);
 //            setCameraDisplayOrientation(this,c);
             c.startPreview();
+            previewing = true;
+
+            Camera.Parameters param = c.getParameters();
+            param.setPictureFormat(ImageFormat.JPEG);
+            cameraResolution = CameraConfigurationUtils.findBestPreviewSizeValue(param, screenResolution);
+            bestPreviewSize = CameraConfigurationUtils.findBestPreviewSizeValue(param, screenResolution);
+            param.setPreviewSize(bestPreviewSize.x, bestPreviewSize.y);
+            param.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            if (previewCallback == null) {
+                previewCallback = new PreviewCallback(cameraResolution);
+            }
+            if (handler == null) {
+                handler = new ContextDecodeHandler(decodeFormats, decodeHints, characterSet, vfv, this);
+            }
+            if (autoFocusManager == null) {
+                autoFocusManager = new AutoFocusManager(context, c);
+            } else {
+                autoFocusManager.start();
+            }
 
         } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -110,6 +157,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
             mCamera.release();
             mCamera = null;
             sv.setVisibility(View.GONE);
+            if (autoFocusManager != null) {
+                autoFocusManager.stop();
+            }
+            previewing = false;
         }
     }
 
@@ -146,15 +197,38 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
         releaseCamera();
     }
 
+    private void decodeOrStoreSavedBitmap(Bitmap bitmap, Result result) {
+        // Bitmap isn't used yet -- will be used soon
+        if (handler == null) {
+            savedResultToShow = result;
+        } else {
+            if (result != null) {
+                savedResultToShow = result;
+            }
+            if (savedResultToShow != null) {
+                Message message = Message.obtain(handler, R.id.decode_succeeded, savedResultToShow);
+                handler.sendMessage(message);
+            }
+            savedResultToShow = null;
+        }
+    }
+
+    public void restartPreviewAfterDelay(long delayMS) {
+        if (handler != null) {
+            handler.sendEmptyMessageDelayed(R.id.restart_preview, delayMS);
+        }
+    }
+
     @Override
     public void handleDecode(Result result, Bitmap barcode, float scaleFactor) {
         lastResult = result;
+        Log.d("Zxing", "start handleDecode");
 //        ResultHandler resultHandler = ResultHandlerFactory.makeResultHandler(this, result);
 
         boolean fromLiveScan = barcode != null;
         if (fromLiveScan) {
             // Then not from history, so beep/vibrate and we have an image to draw on
-//            beepManager.playBeepSoundAndVibrate();
+            beepManager.playBeepSoundAndVibrate();
             drawResultPoints(barcode, scaleFactor, result);
         }
 
@@ -171,13 +245,17 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
 //                }
                 break;
             case NONE:
+                restartPreviewAfterDelay(BULK_MODE_SCAN_DELAY_MS);
                 break;
         }
     }
 
     @Override
     public void requestPreviewFrame(Handler handler, int id) {
-
+        if (previewing) {
+            previewCallback.setHandler(handler, id);
+            mCamera.setOneShotPreviewCallback(previewCallback);
+        }
     }
 
     @Override
@@ -188,12 +266,21 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
 
     @Override
     public void cameraRestartPreviewAndDecode(Handler handler, int id) {
-
+        if (previewing) {
+            previewCallback.setHandler(handler, id);
+            mCamera.setOneShotPreviewCallback(previewCallback);
+        }
     }
 
     @Override
     public PlanarYUVLuminanceSource buildLuminanceSource(byte[] data, int width, int height) {
-        return null;
+        Rect rect = getFramingRectInPreview();
+        if (rect == null) {
+            return null;
+        }
+        // Go ahead and assume it's YUV rather than die.
+        return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top,
+                rect.width(), rect.height(), false);
     }
 
     @Override
@@ -247,5 +334,57 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Zx
                     scaleFactor * b.getY(),
                     paint);
         }
+    }
+
+    private int findDesiredDimensionInRange(int resolution, int hardMin, int hardMax) {
+        int dim = 5 * resolution / 8; // Target 5/8 of each dimension
+        if (dim < hardMin) {
+            return hardMin;
+        }
+        if (dim > hardMax) {
+            return hardMax;
+        }
+        return dim;
+    }
+
+    public synchronized Rect getFramingRect() {
+        if (framingRect == null) {
+            if (mCamera == null) {
+                return null;
+            }
+            if (screenResolution == null) {
+                // Called early, before init even finished
+                return null;
+            }
+
+            int width = findDesiredDimensionInRange(screenResolution.x, MIN_FRAME_WIDTH, MAX_FRAME_WIDTH);
+            int height = findDesiredDimensionInRange(screenResolution.y, MIN_FRAME_HEIGHT, MAX_FRAME_HEIGHT);
+
+            int leftOffset = (screenResolution.x - width) / 2;
+            int topOffset = (screenResolution.y - height) / 2;
+            framingRect = new Rect(leftOffset, topOffset, leftOffset + width, topOffset + height);
+        }
+        return framingRect;
+    }
+
+    public synchronized Rect getFramingRectInPreview() {
+        if (framingRectInPreview == null) {
+            Rect framingRect = getFramingRect();
+            if (framingRect == null) {
+                return null;
+            }
+            Rect rect = new Rect(framingRect);
+            if (cameraResolution == null || screenResolution == null) {
+                // Called early, before init even finished
+                return null;
+            }
+            rect.left = rect.left * cameraResolution.x / screenResolution.x;
+            rect.right = rect.right * cameraResolution.x / screenResolution.x;
+            rect.top = rect.top * cameraResolution.y / screenResolution.y;
+            rect.bottom = rect.bottom * cameraResolution.y / screenResolution.y;
+
+            framingRectInPreview = rect;
+        }
+        return framingRectInPreview;
     }
 }
