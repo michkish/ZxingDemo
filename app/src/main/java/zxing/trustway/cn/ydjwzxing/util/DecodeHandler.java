@@ -1,7 +1,11 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -15,8 +19,16 @@ import com.google.zxing.ReaderException;
 import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Map;
+
+import zxing.trustway.cn.ydjwzxing.R;
+import zxing.trustway.cn.ydjwzxing.listener.ZxingDecodeListener;
 
 /**
  * Created by Zheming.xin on 2017/8/10.
@@ -30,7 +42,7 @@ public class DecodeHandler extends Handler {
 
     private ZxingDecodeListener zxingDecodeListener;
 
-    DecodeHandler(Map<DecodeHintType,Object> hints, ZxingDecodeListener zxingDecodeListener) {
+    public DecodeHandler(Map<DecodeHintType,Object> hints, ZxingDecodeListener zxingDecodeListener) {
         multiFormatReader = new MultiFormatReader();
         multiFormatReader.setHints(hints);
         this.zxingDecodeListener = zxingDecodeListener;

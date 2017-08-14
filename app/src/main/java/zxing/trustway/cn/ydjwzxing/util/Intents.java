@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
 /**
  * Created by Zheming.xin on 2017/8/10.

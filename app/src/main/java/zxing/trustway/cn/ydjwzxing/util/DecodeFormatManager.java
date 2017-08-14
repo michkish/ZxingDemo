@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * Created by Zheming.xin on 2017/8/10.
  */
 
-final class DecodeFormatManager {
+public final class DecodeFormatManager {
 
     private static final Pattern COMMA_PATTERN = Pattern.compile(",");
 
@@ -56,7 +56,7 @@ final class DecodeFormatManager {
 
     private DecodeFormatManager() {}
 
-    static Set<BarcodeFormat> parseDecodeFormats(Intent intent) {
+    public static Set<BarcodeFormat> parseDecodeFormats(Intent intent) {
         Iterable<String> scanFormats = null;
         CharSequence scanFormatsString = intent.getStringExtra(Intents.Scan.FORMATS);
         if (scanFormatsString != null) {
@@ -65,7 +65,7 @@ final class DecodeFormatManager {
         return parseDecodeFormats(scanFormats, intent.getStringExtra(Intents.Scan.MODE));
     }
 
-    static Set<BarcodeFormat> parseDecodeFormats(Uri inputUri) {
+    public static Set<BarcodeFormat> parseDecodeFormats(Uri inputUri) {
         List<String> formats = inputUri.getQueryParameters(Intents.Scan.FORMATS);
         if (formats != null && formats.size() == 1 && formats.get(0) != null) {
             formats = Arrays.asList(COMMA_PATTERN.split(formats.get(0)));

@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.listener;
 
 import android.content.Intent;
 import android.graphics.Bitmap;

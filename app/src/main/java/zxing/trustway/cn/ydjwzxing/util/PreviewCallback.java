@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
 import android.graphics.Point;
 import android.hardware.Camera;
@@ -10,7 +10,7 @@ import android.util.Log;
  * Created by Administrator on 2017/8/13.
  */
 
-final class PreviewCallback implements Camera.PreviewCallback {
+public final class PreviewCallback implements Camera.PreviewCallback {
 
     private static final String TAG = PreviewCallback.class.getSimpleName();
 
@@ -18,20 +18,20 @@ final class PreviewCallback implements Camera.PreviewCallback {
     private int previewMessage;
     private Point cameraResolution;
 
-    PreviewCallback(Point cameraResolution) {
-
+    public PreviewCallback(Point cameraResolution) {
+        this.cameraResolution = cameraResolution;
     }
 
-    void setHandler(Handler previewHandler, int previewMessage) {
+    public void setHandler(Handler previewHandler, int previewMessage) {
         this.previewHandler = previewHandler;
         this.previewMessage = previewMessage;
     }
 
     @Override
     public void onPreviewFrame(byte[] data, Camera camera) {
-        Handler thePreviewHandler = previewHandler;
-        if (cameraResolution != null && thePreviewHandler != null) {
-            Message message = thePreviewHandler.obtainMessage(previewMessage, cameraResolution.x,
+        if (cameraResolution != null && previewHandler != null) {
+//            BitmapUtil.compressImageFromPhotos(data);
+            Message message = previewHandler.obtainMessage(previewMessage, cameraResolution.x,
                     cameraResolution.y, data);
             message.sendToTarget();
             previewHandler = null;
@@ -39,5 +39,4 @@ final class PreviewCallback implements Camera.PreviewCallback {
             Log.d(TAG, "Got preview callback, but no handler or resolution available");
         }
     }
-
 }

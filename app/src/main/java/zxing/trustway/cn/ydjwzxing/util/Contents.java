@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
 import android.provider.ContactsContract;
 

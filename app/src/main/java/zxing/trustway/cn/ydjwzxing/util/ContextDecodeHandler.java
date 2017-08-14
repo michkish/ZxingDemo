@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -13,6 +13,11 @@ import com.google.zxing.Result;
 
 import java.util.Collection;
 import java.util.Map;
+
+import zxing.trustway.cn.ydjwzxing.R;
+import zxing.trustway.cn.ydjwzxing.listener.ViewfinderResultPointCallback;
+import zxing.trustway.cn.ydjwzxing.listener.ZxingDecodeListener;
+import zxing.trustway.cn.ydjwzxing.widget.ViewfinderView;
 
 /**
  * Created by Zheming.xin on 2017/8/10.
@@ -31,9 +36,9 @@ public class ContextDecodeHandler extends Handler {
         DONE
     }
 
-    ContextDecodeHandler(Collection<BarcodeFormat> decodeFormats,
-                           Map<DecodeHintType,?> baseHints,
-                           String characterSet, ViewfinderView view, ZxingDecodeListener zxingDecodeListener) {
+    public ContextDecodeHandler(Collection<BarcodeFormat> decodeFormats,
+                         Map<DecodeHintType,?> baseHints,
+                         String characterSet, ViewfinderView view, ZxingDecodeListener zxingDecodeListener) {
         decodeThread = new DecodeThread(decodeFormats, baseHints, characterSet,
                 new ViewfinderResultPointCallback(view), zxingDecodeListener);
         decodeThread.start();
@@ -73,37 +78,8 @@ public class ContextDecodeHandler extends Handler {
                 break;
             case R.id.return_scan_result:
                 zxingDecodeListener.returnScanResult((Intent) message.obj);
-//                activity.setResult(Activity.RESULT_OK, );
-//                activity.finish();
                 break;
             case R.id.launch_product_query:
-                /* enter web browser if it is url, mark it now for no need. */
-                /*String url = (String) message.obj;
-
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-                intent.setData(Uri.parse(url));
-
-                ResolveInfo resolveInfo =
-                        activity.getPackageManager().resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
-                String browserPackageName = null;
-                if (resolveInfo != null && resolveInfo.activityInfo != null) {
-                    browserPackageName = resolveInfo.activityInfo.packageName;
-                    Log.d(TAG, "Using browser in package " + browserPackageName);
-                }
-
-                // Needed for default Android browser / Chrome only apparently
-                if ("com.android.browser".equals(browserPackageName) || "com.android.chrome".equals(browserPackageName)) {
-                    intent.setPackage(browserPackageName);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    intent.putExtra(Browser.EXTRA_APPLICATION_ID, browserPackageName);
-                }
-
-                try {
-                    activity.startActivity(intent);
-                } catch (ActivityNotFoundException ignored) {
-                    Log.w(TAG, "Can't find anything to handle VIEW of URI " + url);
-                }*/
                 break;
         }
     }

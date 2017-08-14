@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
 import com.google.zxing.Result;
 import com.google.zxing.client.result.ParsedResult;

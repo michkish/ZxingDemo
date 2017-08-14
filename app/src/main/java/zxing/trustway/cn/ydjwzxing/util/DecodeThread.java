@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -14,6 +14,8 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import zxing.trustway.cn.ydjwzxing.listener.ZxingDecodeListener;
+
 /**
  * Created by Zheming.xin on 2017/8/10.
  */
@@ -28,7 +30,7 @@ public class DecodeThread extends Thread {
 
     private ZxingDecodeListener zxingDecodeListener;
 
-    DecodeThread(Collection<BarcodeFormat> decodeFormats,
+    public DecodeThread(Collection<BarcodeFormat> decodeFormats,
                  Map<DecodeHintType,?> baseHints,
                  String characterSet,
                  ResultPointCallback resultPointCallback, ZxingDecodeListener zxingDecodeListener) {

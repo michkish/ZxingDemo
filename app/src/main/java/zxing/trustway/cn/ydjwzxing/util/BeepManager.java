@@ -1,23 +1,23 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Vibrator;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.io.Closeable;
 import java.io.IOException;
 
+import zxing.trustway.cn.ydjwzxing.R;
+
 /**
  * Created by Administrator on 2017/8/13.
  */
 
-final class BeepManager implements MediaPlayer.OnErrorListener, Closeable {
+public final class BeepManager implements MediaPlayer.OnErrorListener, Closeable {
 
     private static final String TAG = BeepManager.class.getSimpleName();
 
@@ -29,13 +29,13 @@ final class BeepManager implements MediaPlayer.OnErrorListener, Closeable {
     private boolean playBeep;
     private boolean vibrate;
 
-    BeepManager(Context context) {
+    public BeepManager(Context context) {
         this.context = context;
         this.mediaPlayer = null;
         updatePrefs();
     }
 
-    synchronized void updatePrefs() {
+    public synchronized void updatePrefs() {
         playBeep = true;
         vibrate = true;
         if (playBeep && mediaPlayer == null) {
@@ -46,7 +46,7 @@ final class BeepManager implements MediaPlayer.OnErrorListener, Closeable {
         }
     }
 
-    synchronized void playBeepSoundAndVibrate() {
+    public synchronized void playBeepSoundAndVibrate() {
         if (playBeep && mediaPlayer != null) {
             mediaPlayer.start();
         }

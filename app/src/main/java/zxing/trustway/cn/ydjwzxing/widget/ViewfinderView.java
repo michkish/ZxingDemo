@@ -1,4 +1,4 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.widget;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -6,14 +6,19 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.view.View;
 
 import com.google.zxing.ResultPoint;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import zxing.trustway.cn.ydjwzxing.R;
+import zxing.trustway.cn.ydjwzxing.util.BitmapUtil;
 
 /**
  * Created by Zheming.xin on 2017/8/10.
@@ -38,6 +43,8 @@ public class ViewfinderView extends View {
     private List<ResultPoint> possibleResultPoints;
     private List<ResultPoint> lastPossibleResultPoints;
 
+    private Point screenResolution;
+
     // This constructor is used when the class is built from an XML resource.
     public ViewfinderView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -52,6 +59,11 @@ public class ViewfinderView extends View {
         scannerAlpha = 0;
         possibleResultPoints = new ArrayList<>(5);
         lastPossibleResultPoints = null;
+
+        screenResolution = new Point();
+        DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        screenResolution.x = dm.widthPixels;
+        screenResolution.y = dm.heightPixels;
     }
 
 //    public void setCameraManager(CameraManager cameraManager) {
@@ -63,12 +75,9 @@ public class ViewfinderView extends View {
     public void onDraw(Canvas canvas) {
         /*if (cameraManager == null) {
             return; // not ready yet, early draw before done configuring
-        }
-        Rect frame = cameraManager.getFramingRect();
-        Rect previewFrame = cameraManager.getFramingRectInPreview();*/
-        Rect frame = new Rect(202, 622, 877, 1297);
-        Rect previewFrame = new Rect(202, 622, 877, 1297);
-//        Rect previewFrame = new Rect(359, 349, 1559, 729);
+        }*/
+        Rect frame = BitmapUtil.getFramingRect(screenResolution);
+        Rect previewFrame = BitmapUtil.getFramingRectInPreview(screenResolution, BitmapUtil.cameraResolution);
         if (frame == null || previewFrame == null) {
             return;
         }

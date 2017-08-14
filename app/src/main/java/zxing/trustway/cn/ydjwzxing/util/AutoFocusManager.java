@@ -1,10 +1,8 @@
-package zxing.trustway.cn.ydjwzxing;
+package zxing.trustway.cn.ydjwzxing.util;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.hardware.Camera;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -15,7 +13,7 @@ import java.util.concurrent.RejectedExecutionException;
  * Created by Administrator on 2017/8/13.
  */
 
-final class AutoFocusManager implements Camera.AutoFocusCallback {
+public final class AutoFocusManager implements Camera.AutoFocusCallback {
 
     private static final String TAG = AutoFocusManager.class.getSimpleName();
 
@@ -33,7 +31,7 @@ final class AutoFocusManager implements Camera.AutoFocusCallback {
     private final Camera camera;
     private AsyncTask<?,?,?> outstandingTask;
 
-    AutoFocusManager(Context context, Camera camera) {
+    public AutoFocusManager(Context context, Camera camera) {
         this.camera = camera;
         String currentFocusMode = camera.getParameters().getFocusMode();
         useAutoFocus = FOCUS_MODES_CALLING_AF.contains(currentFocusMode);
@@ -59,7 +57,7 @@ final class AutoFocusManager implements Camera.AutoFocusCallback {
         }
     }
 
-    synchronized void start() {
+    public synchronized void start() {
         if (useAutoFocus) {
             outstandingTask = null;
             if (!stopped && !focusing) {
@@ -85,7 +83,7 @@ final class AutoFocusManager implements Camera.AutoFocusCallback {
         }
     }
 
-    synchronized void stop() {
+    public synchronized void stop() {
         stopped = true;
         if (useAutoFocus) {
             cancelOutstandingTask();
