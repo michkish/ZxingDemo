@@ -1,9 +1,11 @@
 package zxing.trustway.cn.ydjwzxing;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
@@ -12,10 +14,12 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.support.v4.content.ContextCompat;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -57,10 +61,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
         intent = getIntent();
         context = this;
 
-
-        File file = new File(BitmapUtil.picPath);
-        if (!file.exists()) {
-            file.mkdirs();
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (ContextCompat.checkSelfPermission(getApplication(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0x02);
+            } else {
+                File file = new File(BitmapUtil.picPath);
+                if (!file.exists()) {
+                    file.mkdirs();
+                }
+            }
+        } else {
+            File file = new File(BitmapUtil.picPath);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
         }
     }
 
