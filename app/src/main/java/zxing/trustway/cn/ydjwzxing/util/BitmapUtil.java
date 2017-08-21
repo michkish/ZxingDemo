@@ -74,9 +74,11 @@ public class BitmapUtil {
             int width = findDesiredDimensionInRange(screenResolution.x, MIN_FRAME_WIDTH, MAX_FRAME_WIDTH);
             int height = findDesiredDimensionInRange(screenResolution.y, MIN_FRAME_HEIGHT, MAX_FRAME_HEIGHT);
 
-            int leftOffset = (screenResolution.x - width) / 2;
-            int topOffset = (screenResolution.y - height) / 2;
-            framingRect = new Rect(leftOffset, topOffset, leftOffset + width, topOffset + height);
+            int length = width < height ? width : height;
+
+            int leftOffset = (screenResolution.x - length) / 2;
+            int topOffset = (screenResolution.y - length) / 2;
+            framingRect = new Rect(leftOffset, topOffset, leftOffset + length, topOffset + length);
         }
         return framingRect;
     }
