@@ -112,7 +112,6 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback, 
         } else {
             doCamera();
         }
-        doCamera();
     }
 
     public void doCamera() {
