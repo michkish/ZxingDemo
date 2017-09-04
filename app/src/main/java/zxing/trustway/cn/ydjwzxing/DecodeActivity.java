@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
@@ -24,6 +25,7 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
@@ -66,8 +68,7 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback, 
     private Intent intent;
     private Result lastResult;
     private Context context;
-    private Point screenResolution, bestPreviewSize;
-    private Rect framingRect, framingRectInPreview;
+    private Point bestPreviewSize;
 
     private Result savedResultToShow;
 
@@ -76,13 +77,6 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback, 
     private AutoFocusManager autoFocusManager;
 //    private IntentSource source;
     private boolean previewing = false;
-
-    private static final int MIN_FRAME_WIDTH = 240;
-    private static final int MIN_FRAME_HEIGHT = 240;
-    private static final int MAX_FRAME_WIDTH = 1200; // = 5/8 * 1920
-    private static final int MAX_FRAME_HEIGHT = 675; // = 5/8 * 1080
-    private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
-    private static final long BULK_MODE_SCAN_DELAY_MS = 1000L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,10 +93,6 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback, 
         this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
         beepManager = new BeepManager(context);
 
-        screenResolution = new Point();
-        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        screenResolution.x = dm.widthPixels;
-        screenResolution.y = dm.heightPixels;
         if (Build.VERSION.SDK_INT >= 23) {
             if (ContextCompat.checkSelfPermission(getApplication(),Manifest.permission.CAMERA)!= PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[] {Manifest.permission.CAMERA} ,0x02);
@@ -155,8 +145,8 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback, 
 
             Camera.Parameters param = c.getParameters();
             param.setPictureFormat(ImageFormat.JPEG);
-            BitmapUtil.cameraResolution = CameraConfigurationUtils.findBestPreviewSizeValue(param, screenResolution);
-            bestPreviewSize = CameraConfigurationUtils.findBestPreviewSizeValue(param, screenResolution);
+            bestPreviewSize = CameraConfigurationUtils.findBestPreviewSizeValue(param, BitmapUtil.screenResolution);
+            BitmapUtil.cameraResolution = bestPreviewSize;
             param.setPreviewSize(bestPreviewSize.x, bestPreviewSize.y);
             param.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
             if (previewCallback == null) {
@@ -259,10 +249,12 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback, 
 
         boolean fromLiveScan = barcode != null;
         if (result != null && !TextUtils.isEmpty(result.getText())) {
-            Toast.makeText(context, result.getText(),Toast.LENGTH_LONG).show();
+            Log.d("Zxing", "zxing decode: " + result.getText());
         } else {
 
         }
+
+        restartPreviewAfterDelay(2000);
 //        if (fromLiveScan) {
 //            // Then not from history, so beep/vibrate and we have an image to draw on
 //
@@ -295,11 +287,13 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback, 
 
     @Override
     public PlanarYUVLuminanceSource buildLuminanceSource(byte[] data, int width, int height) {
-        Rect rect = getFramingRectInPreview();
+        Rect rect = BitmapUtil.getFramingRectInPreview(BitmapUtil.screenResolution, BitmapUtil.cameraResolution);
         if (rect == null) {
             return null;
         }
         // Go ahead and assume it's YUV rather than die.
+        Log.d("Guess", "width: " + width + " height: " + height);
+        Log.d("Guess", "rect: " + rect);
         return new PlanarYUVLuminanceSource(data, width, height, rect.left, rect.top,
                 rect.width(), rect.height(), false);
     }
@@ -355,57 +349,5 @@ public class DecodeActivity extends Activity implements SurfaceHolder.Callback, 
                     scaleFactor * b.getY(),
                     paint);
         }
-    }
-
-    private int findDesiredDimensionInRange(int resolution, int hardMin, int hardMax) {
-        int dim = 5 * resolution / 8; // Target 5/8 of each dimension
-        if (dim < hardMin) {
-            return hardMin;
-        }
-        if (dim > hardMax) {
-            return hardMax;
-        }
-        return dim;
-    }
-
-    public synchronized Rect getFramingRect() {
-        if (framingRect == null) {
-            if (mCamera == null) {
-                return null;
-            }
-            if (screenResolution == null) {
-                // Called early, before init even finished
-                return null;
-            }
-
-            int width = findDesiredDimensionInRange(screenResolution.x, MIN_FRAME_WIDTH, MAX_FRAME_WIDTH);
-            int height = findDesiredDimensionInRange(screenResolution.y, MIN_FRAME_HEIGHT, MAX_FRAME_HEIGHT);
-
-            int leftOffset = (screenResolution.x - width) / 2;
-            int topOffset = (screenResolution.y - height) / 2;
-            framingRect = new Rect(leftOffset, topOffset, leftOffset + width, topOffset + height);
-        }
-        return framingRect;
-    }
-
-    public synchronized Rect getFramingRectInPreview() {
-        if (framingRectInPreview == null) {
-            Rect framingRect = getFramingRect();
-            if (framingRect == null) {
-                return null;
-            }
-            Rect rect = new Rect(framingRect);
-            if (BitmapUtil.cameraResolution == null || screenResolution == null) {
-                // Called early, before init even finished
-                return null;
-            }
-            rect.left = rect.left * BitmapUtil.cameraResolution.x / screenResolution.x;
-            rect.right = rect.right * BitmapUtil.cameraResolution.x / screenResolution.x;
-            rect.top = rect.top * BitmapUtil.cameraResolution.y / screenResolution.y;
-            rect.bottom = rect.bottom * BitmapUtil.cameraResolution.y / screenResolution.y;
-
-            framingRectInPreview = rect;
-        }
-        return framingRectInPreview;
     }
 }

@@ -43,8 +43,6 @@ public class ViewfinderView extends View {
     private List<ResultPoint> possibleResultPoints;
     private List<ResultPoint> lastPossibleResultPoints;
 
-    private Point screenResolution;
-
     // This constructor is used when the class is built from an XML resource.
     public ViewfinderView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -59,11 +57,6 @@ public class ViewfinderView extends View {
         scannerAlpha = 0;
         possibleResultPoints = new ArrayList<>(5);
         lastPossibleResultPoints = null;
-
-        screenResolution = new Point();
-        DisplayMetrics dm = context.getResources().getDisplayMetrics();
-        screenResolution.x = dm.widthPixels;
-        screenResolution.y = dm.heightPixels;
     }
 
 //    public void setCameraManager(CameraManager cameraManager) {
@@ -76,8 +69,8 @@ public class ViewfinderView extends View {
         /*if (cameraManager == null) {
             return; // not ready yet, early draw before done configuring
         }*/
-        Rect frame = BitmapUtil.getFramingRect(screenResolution);
-        Rect previewFrame = BitmapUtil.getFramingRectInPreview(screenResolution, BitmapUtil.cameraResolution);
+        Rect frame = BitmapUtil.getFramingRect(BitmapUtil.screenResolution);
+        Rect previewFrame = BitmapUtil.getFramingRectInPreview(BitmapUtil.screenResolution, BitmapUtil.cameraResolution);
         if (frame == null || previewFrame == null) {
             return;
         }

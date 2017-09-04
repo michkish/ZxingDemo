@@ -29,7 +29,7 @@ public class BitmapUtil {
     private static final int MAX_FRAME_HEIGHT = 675; // = 5/8 * 1080
 
     private static Rect framingRect, framingRectInPreview;
-    public static Point cameraResolution;
+    public static Point cameraResolution, screenResolution;
 
     public static synchronized Rect getFramingRectInPreview(Point screenResolution, Point cameraResolution) {
         if (framingRectInPreview == null) {
@@ -43,23 +43,37 @@ public class BitmapUtil {
                 return null;
             }
 
-//      if (screenResolution.x / screenResolution.y != cameraResolution.x / cameraResolution.y ) {
-//        rect.left = rect.left * cameraResolution.y / screenResolution.x;
-//        rect.right = rect.right * cameraResolution.y / screenResolution.x;
-//        rect.top = rect.top * cameraResolution.x / screenResolution.y;
-//        rect.bottom = rect.bottom * cameraResolution.x / screenResolution.y;
-//      } else {
-//        rect.left = rect.left * cameraResolution.x / screenResolution.x;
-//        rect.right = rect.right * cameraResolution.x / screenResolution.x;
-//        rect.top = rect.top * cameraResolution.y / screenResolution.y;
-//        rect.bottom = rect.bottom * cameraResolution.y / screenResolution.y;
-//      }
-            rect.left = rect.left * cameraResolution.x / screenResolution.x;
-            rect.right = rect.right * cameraResolution.x / screenResolution.x;
-            rect.top = rect.top * cameraResolution.y / screenResolution.y;
-            rect.bottom = rect.bottom * cameraResolution.y / screenResolution.y;
+            Log.d("Guess", "screenResolution: " + screenResolution);
+            Log.d("Guess", "cameraResolution: " + cameraResolution);
+            Log.d("Guess", "framingRect: " + framingRect);
 
-            framingRectInPreview = rect;
+//            boolean isPortrait = screenResolution.y > screenResolution.x;
+//            boolean isCameraPortrait = cameraResolution.y > cameraResolution.x;
+
+            Rect cameraRect = new Rect();
+            cameraRect.left = 0;
+            cameraRect.right = cameraResolution.x;
+            cameraRect.top = 0;
+            cameraRect.bottom = cameraResolution.y;
+
+//            if (isPortrait == isCameraPortrait) {
+//                cameraRect.left = rect.left * cameraResolution.x / screenResolution.x;
+//                cameraRect.right = rect.right * cameraResolution.x / screenResolution.x;
+//                cameraRect.top = rect.top * cameraResolution.y / screenResolution.y;
+//                cameraRect.bottom = rect.bottom * cameraResolution.y / screenResolution.y;
+//            } else {
+//                cameraRect.left = rect.top * cameraResolution.x / screenResolution.y;
+//                cameraRect.right = rect.bottom * cameraResolution.x / screenResolution.y;
+//                cameraRect.top = rect.left * cameraResolution.y / screenResolution.x;
+//                cameraRect.bottom = rect.right * cameraResolution.y / screenResolution.x;
+//            }
+
+            Log.d("Guess", "left: " + cameraRect.left + " right: "
+                    + cameraRect.right + " top: "
+                    + cameraRect.top + " bottom: " + cameraRect.bottom);
+
+            framingRectInPreview = cameraRect;
+            Log.d("Guess", "framingRectInPreview: " + framingRectInPreview);
         }
         return framingRectInPreview;
     }
